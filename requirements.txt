@@ -1,0 +1,8 @@
+torch==2.9.1
+transformers==4.46.1
+datasets
+peft
+bitsandbytes
+flash-attn
+wandb
+matplotlib

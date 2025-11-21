@@ -107,7 +107,7 @@ def train():
         # —— Mixed precision ——
         bf16=torch.cuda.is_bf16_supported(),
         fp16=torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
-        optim="paged_adamw_32bit",
+        optim="paged_adamw_8bit",
         gradient_checkpointing=True,
 
         # —— Others ——

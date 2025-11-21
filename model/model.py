@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from transformers import AutoModelForCausalLM, BitsAndBytesConfig, AutoTokenizer
 from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training, PeftModel
-import logging
 from pathlib import Path
 import datasets
 
@@ -21,12 +20,18 @@ class LoRAFTModel(nn.Module):
             base_model = AutoModelForCausalLM.from_pretrained(
                 pretrained_model_name_or_path,
                 quantization_config=quantization_config,
-                device_map='cuda' if torch.cuda.is_available() else 'cpu'
+                device_map='cuda' if torch.cuda.is_available() else 'cpu',
+                gradient_checkpointing=True,
+                gradient_checkpointing_kwargs={'use_reentrant': False},
+                use_cache=False
             )
         else:
             base_model = AutoModelForCausalLM.from_pretrained(
                 pretrained_model_name_or_path,
-                device_map='cuda' if torch.cuda.is_available() else 'cpu'
+                device_map='cuda' if torch.cuda.is_available() else 'cpu',
+                gradient_checkpointing=True,
+                gradient_checkpointing_kwargs={'use_reentrant': False},
+                use_cache=False
             )
         base_model = prepare_model_for_kbit_training(base_model)
 
@@ -47,7 +52,7 @@ class LoRAFTModel(nn.Module):
             self.model = get_peft_model(base_model, lora_config)
 
         trainable_params_number, all_params_number = self.model.get_nb_trainable_parameters()
-        logging.info(
+        print(
             f"LoRA model initialized. Trainable parameters: {trainable_params_number}, "
             f"All parameters: {all_params_number}, "
             f"trainable ratio: {trainable_params_number / all_params_number:.2%}",
@@ -74,7 +79,7 @@ class LoRAFTModel(nn.Module):
                    lora_dir=lora_dir,
                    **kwargs)
 
-    def tokenize(self, dataset: datasets.Dataset, message_col: str, max_length: int = 2048) -> datasets.Dataset:
+    def tokenize(self, dataset: datasets.Dataset, message_col: str, max_length: int = 1024) -> datasets.Dataset:
         def tokenize_function(samples):
             messages = samples[message_col]
             batch_prompts = [self.tokenizer.apply_chat_template(msg, tokenize=False, add_generation_prompt=False) for
